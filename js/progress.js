@@ -51,13 +51,50 @@ const ProgressManager = {
     return this.getDefaultState();
   },
 
-  // Save state to localStorage
+  // Save state to localStorage and Sync to Cloud Background (Async)
   save(state) {
     try {
       state.lastUpdated = new Date().toISOString();
       localStorage.setItem(this._key(), JSON.stringify(state));
+      
+      // Async sync to Azure Cloud
+      if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+        const username = Auth.getCurrentUser()?.username;
+        if (username) {
+          fetch('/api/progress/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, gameState: state })
+          }).catch(e => console.warn('Cloud sync background failed', e));
+        }
+      }
     } catch (e) {
       console.warn('Failed to save progress:', e);
+    }
+  },
+
+  // Initialize progress by pulling from Cloud (Azure API)
+  async initCloud() {
+    if (typeof Auth === 'undefined' || !Auth.isLoggedIn()) return;
+    const username = Auth.getCurrentUser()?.username;
+    if (!username) return;
+
+    try {
+      const res = await fetch(`/api/progress?username=${username}`);
+      const data = await res.json();
+      if (data.ok && data.gameState) {
+        const local = this.load();
+        // Naive merge: if cloud is newer (based on lastUpdated), use cloud.
+        // It's a simplistic conflict resolution
+        const cloudDate = data.gameState.lastUpdated ? new Date(data.gameState.lastUpdated) : 0;
+        const localDate = local.lastUpdated ? new Date(local.lastUpdated) : 0;
+        
+        if (cloudDate > localDate) {
+          localStorage.setItem(this._key(), JSON.stringify(data.gameState));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to init cloud progress', e);
     }
   },
 

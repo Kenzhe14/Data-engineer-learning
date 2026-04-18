@@ -37,46 +37,57 @@ const Auth = {
     return this.getSession();
   },
 
-  // Register new user
-  register(username, password, displayName) {
+  // Register new user (Async via Azure API)
+  async register(username, password, displayName) {
     username = username.trim().toLowerCase();
     displayName = displayName.trim();
 
-    // Validate
+    // Validate locally first
     if (!username || username.length < 3) return { ok: false, error: 'Имя пользователя минимум 3 символа' };
     if (!/^[a-z0-9_]+$/.test(username)) return { ok: false, error: 'Только латиница, цифры и _' };
     if (!password || password.length < 4) return { ok: false, error: 'Пароль минимум 4 символа' };
     if (!displayName || displayName.length < 2) return { ok: false, error: 'Введите отображаемое имя' };
 
-    const users = this.getUsers();
-    if (users[username]) return { ok: false, error: 'Пользователь уже существует' };
-
-    // Store user (password hashed with simple method)
-    users[username] = {
-      username,
-      displayName,
-      passwordHash: this._hash(password),
-      createdAt: new Date().toISOString(),
-      avatar: this._generateAvatar(displayName)
-    };
-    this.saveUsers(users);
-
-    // Auto-login
-    this._startSession(users[username]);
-    return { ok: true };
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, displayName })
+      });
+      const data = await response.json();
+      
+      if (!data.ok) return data;
+      
+      this._startSession(data);
+      return { ok: true };
+    } catch (e) {
+      console.error(e);
+      // Fallback for local testing without API running
+      return this._fallbackRegister(username, password, displayName);
+    }
   },
 
-  // Login existing user
-  login(username, password) {
+  // Login existing user (Async via Azure API)
+  async login(username, password) {
     username = username.trim().toLowerCase();
-    const users = this.getUsers();
-    const user = users[username];
-
-    if (!user) return { ok: false, error: 'Пользователь не найден' };
-    if (user.passwordHash !== this._hash(password)) return { ok: false, error: 'Неверный пароль' };
-
-    this._startSession(user);
-    return { ok: true };
+    
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
+      
+      if (!data.ok) return data;
+      
+      this._startSession(data);
+      return { ok: true };
+    } catch (e) {
+      console.error(e);
+      // Fallback for local testing without API
+      return this._fallbackLogin(username, password);
+    }
   },
 
   // Logout
@@ -92,28 +103,63 @@ const Auth = {
   },
 
   // Get all users with their stats (for leaderboard)
-  getLeaderboard() {
-    const users = this.getUsers();
-    return Object.values(users).map(u => {
-      const key = `de_learning_progress_${u.username}`;
-      try {
-        const data = JSON.parse(localStorage.getItem(key) || '{}');
-        const tasksCount = Object.values(data.solvedTasks || {}).filter(t => t.solved).length;
-        const lecturesCount = (data.completedLectures || []).length;
-        const score = tasksCount * 3 + lecturesCount * 2;
-        return {
-          username: u.username,
-          displayName: u.displayName,
-          avatar: u.avatar,
-          score,
-          tasksCount,
-          lecturesCount,
-          createdAt: u.createdAt
-        };
-      } catch {
-        return { username: u.username, displayName: u.displayName, avatar: u.avatar, score: 0 };
+  async getLeaderboard() {
+    try {
+      const response = await fetch('/api/leaderboard');
+      const data = await response.json();
+      if (data.ok && data.leaderboard) {
+        return data.leaderboard;
       }
-    }).sort((a, b) => b.score - a.score);
+      throw new Error("Invalid API response");
+    } catch (e) {
+      console.warn("Leaderboard API failed, falling back to local storage", e);
+      // Fallback
+      const users = this.getUsers();
+      return Object.values(users).map(u => {
+        const key = `de_learning_progress_${u.username}`;
+        try {
+          const data = JSON.parse(localStorage.getItem(key) || '{}');
+          const tasksCount = Object.values(data.solvedTasks || {}).filter(t => t.solved).length;
+          const lecturesCount = (data.completedLectures || []).length;
+          const score = tasksCount * 3 + lecturesCount * 2;
+          return {
+            username: u.username,
+            displayName: u.displayName,
+            avatar: u.avatar,
+            score,
+            tasksCount,
+            lecturesCount,
+            createdAt: u.createdAt
+          };
+        } catch {
+          return { username: u.username, displayName: u.displayName, avatar: u.avatar, score: 0 };
+        }
+      }).sort((a, b) => b.score - a.score);
+    }
+  },
+
+  // Fallback for local without API
+  _fallbackRegister(username, password, displayName) {
+    const users = this.getUsers();
+    if (users[username]) return { ok: false, error: 'Пользователь уже существует (локально)' };
+    users[username] = {
+      username, displayName,
+      passwordHash: this._hash(password),
+      createdAt: new Date().toISOString(),
+      avatar: this._generateAvatar(displayName)
+    };
+    this.saveUsers(users);
+    this._startSession(users[username]);
+    return { ok: true };
+  },
+
+  _fallbackLogin(username, password) {
+    const users = this.getUsers();
+    const user = users[username];
+    if (!user) return { ok: false, error: 'Пользователь не найден (локально)' };
+    if (user.passwordHash !== this._hash(password)) return { ok: false, error: 'Неверный пароль' };
+    this._startSession(user);
+    return { ok: true };
   },
 
   // Private: start session
@@ -229,52 +275,73 @@ const Auth = {
     document.getElementById('tab-register').classList.toggle('active', tab === 'register');
   },
 
-  handleLogin() {
+  async handleLogin() {
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
     const errorEl = document.getElementById('login-error');
+    const submitBtn = document.querySelector('#auth-form-login .auth-submit');
+    const oldText = submitBtn.textContent;
+    submitBtn.textContent = 'Вход...';
+    submitBtn.disabled = true;
 
-    const result = this.login(username, password);
-    if (result.ok) {
-      document.getElementById('auth-modal-overlay').remove();
-      // Force to dashboard
-      window.location.hash = 'dashboard';
-      App.init();
-    } else {
-      errorEl.textContent = result.error;
-      errorEl.classList.remove('hidden');
+    try {
+      const result = await this.login(username, password);
+      if (result.ok) {
+        document.getElementById('auth-modal-overlay')?.remove();
+        window.location.hash = 'dashboard';
+        App.init();
+      } else {
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+      }
+    } finally {
+      submitBtn.textContent = oldText;
+      submitBtn.disabled = false;
     }
   },
 
-  handleRegister() {
+  async handleRegister() {
     const name = document.getElementById('reg-name').value;
     const username = document.getElementById('reg-username').value;
     const password = document.getElementById('reg-password').value;
     const errorEl = document.getElementById('reg-error');
+    const submitBtn = document.querySelector('#auth-form-register .auth-submit');
+    const oldText = submitBtn.textContent;
+    submitBtn.textContent = 'Регистрация...';
+    submitBtn.disabled = true;
 
-    const result = this.register(username, password, name);
-    if (result.ok) {
-      document.getElementById('auth-modal-overlay').remove();
-      // Force to dashboard
-      window.location.hash = 'dashboard';
-      App.init();
-    } else {
-      errorEl.textContent = result.error;
-      errorEl.classList.remove('hidden');
+    try {
+      const result = await this.register(username, password, name);
+      if (result.ok) {
+        document.getElementById('auth-modal-overlay')?.remove();
+        window.location.hash = 'dashboard';
+        App.init();
+      } else {
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+      }
+    } finally {
+      submitBtn.textContent = oldText;
+      submitBtn.disabled = false;
     }
   },
 
-  loginDemo() {
-    // Create/login demo user
-    const users = this.getUsers();
-    if (!users['demo']) {
-      this.register('demo', 'demo123', 'Demo User');
-    } else {
-      this.login('demo', 'demo123');
+  async loginDemo() {
+    const submitBtn = document.querySelector('.auth-demo-btn');
+    if(submitBtn) {
+       submitBtn.textContent = 'Вход...';
+       submitBtn.disabled = true;
     }
+    
+    // Create/login demo user
+    let result = await this.login('demo', 'demo123');
+    if (!result.ok) {
+      result = await this.register('demo', 'demo123', 'Demo User');
+    }
+    
     document.getElementById('auth-modal-overlay')?.remove();
-    // Force to dashboard so hashchange fires
     window.location.hash = 'dashboard';
+    if (typeof ProgressManager !== 'undefined') await ProgressManager.initCloud();
     App.init();
   }
 };
