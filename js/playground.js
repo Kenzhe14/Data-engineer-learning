@@ -357,11 +357,14 @@ sys.stderr = sys.__stderr__
           <span>Тест ${i + 1}: ${r.passed ? 'Passed' : 'Failed'}</span>
         </div>`;
         if (!r.passed) {
-          html += `<div style="padding-left:28px;font-size:12px;color:var(--text-tertiary);margin-bottom:8px;">
+          html += `<div style="padding-left:28px;font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">
             <div>Input: <code>${r.input}</code></div>
             <div>Expected: <code>${r.expected}</code></div>
             <div>Got: <code>${r.actual}</code></div>
           </div>`;
+        }
+        if (r.stdout && r.stdout.trim().length > 0) {
+          html += `<div style="padding-left:28px;font-size:12px;color:var(--warning);margin-bottom:8px;white-space:pre-wrap;font-family:var(--font-mono);"><b>Console:</b><br/>${r.stdout.trim()}</div>`;
         }
       });
     } else {
