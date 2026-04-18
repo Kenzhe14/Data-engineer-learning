@@ -655,7 +655,8 @@ const App = {
   // =============================================
   // PROGRESS PAGE — Full featured
   // =============================================
-  renderProgress() {
+  async renderProgress() {
+    this.render('<div class="container" style="display:flex;justify-content:center;padding:100px;"><div style="font-size:24px;">Загрузка профиля и таблицы лидеров... ⏳</div></div>');
     const user = typeof Auth !== 'undefined' ? Auth.getCurrentUser() : { displayName: 'Гость', avatar: '👤', username: 'guest' };
     const stats = ProgressManager.getStats();
     const level = stats.level;
@@ -725,7 +726,7 @@ const App = {
     }).join('');
 
     // Leaderboard
-    const leaderboard = typeof Auth !== 'undefined' ? Auth.getLeaderboard() : [];
+    const leaderboard = typeof Auth !== 'undefined' ? await Auth.getLeaderboard() : [];
     const currentUsername = user.username;
     const leaderboardHtml = leaderboard.slice(0, 10).map((u, i) => {
       const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
