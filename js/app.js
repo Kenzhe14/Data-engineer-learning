@@ -122,6 +122,9 @@ const App = {
         case 'progress':
           this.renderProgress();
           break;
+        case 'leaderboard':
+          this.renderLeaderboard();
+          break;
         default:
           this.renderDashboard();
       }
@@ -814,12 +817,6 @@ const App = {
         <div class="progress-section-title">🏆 Достижения (${unlockedIds.length}/${Object.keys(allAchievements).length})</div>
         <div class="achievements-grid">${achievementsHtml}</div>
 
-        <!-- Leaderboard -->
-        ${leaderboard.length > 0 ? `
-          <div class="progress-section-title">🏅 Таблица лидеров</div>
-          <div class="leaderboard-list">${leaderboardHtml}</div>
-        ` : ''}
-
         <!-- Actions -->
         <div class="progress-actions">
           <button class="btn btn-outline btn-sm" onclick="ProgressManager.exportJSON();Components.toast('Прогресс экспортирован!','success');">
@@ -837,6 +834,48 @@ const App = {
           </button>
         </div>
 
+      </div>
+    `;
+    this.render(html);
+  },
+
+  // =============================================
+  // LEADERBOARD PAGE
+  // =============================================
+  async renderLeaderboard() {
+    this.render('<div class="container" style="display:flex;justify-content:center;padding:100px;"><div style="font-size:24px;">Загрузка рейтинга... ⏳</div></div>');
+    
+    const user = typeof Auth !== 'undefined' ? Auth.getCurrentUser() : { username: 'guest' };
+    const leaderboard = typeof Auth !== 'undefined' ? await Auth.getLeaderboard() : [];
+    const currentUsername = user?.username;
+
+    // Build the standalone leaderboard page
+    const leaderboardHtml = leaderboard.map((u, i) => {
+      const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+      const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+      return `
+        <div class="leaderboard-item ${u.username === currentUsername ? 'me' : ''}" style="margin-bottom:12px; transform: scale(1.02); padding: 16px;">
+          <div class="leaderboard-rank ${rankClass}" style="width: 40px; height: 40px; font-size: 20px;">${rankIcon}</div>
+          <div class="leaderboard-avatar" style="width: 50px; height: 50px; font-size: 24px;">${u.avatar || '👤'}</div>
+          <div style="flex:1;">
+            <div class="leaderboard-info-name" style="font-size: 18px;">${u.displayName} ${u.username === currentUsername ? '<span style="font-size:12px;color:var(--text-tertiary);">(вы)</span>' : ''}</div>
+            <div class="leaderboard-info-sub" style="font-size: 14px;">${u.tasksCount || 0} задач · ${u.lecturesCount || 0} лекций</div>
+          </div>
+          <div class="leaderboard-score" style="font-size: 20px;">${u.score} XP</div>
+        </div>
+      `;
+    }).join('');
+
+    const html = `
+      <div class="container">
+        <div class="page-header" style="text-align: center; margin-bottom: 40px;">
+          <h1 style="font-size: 42px; margin-bottom: 12px;">🏅 Мировой Рейтинг</h1>
+          <p style="font-size: 18px; color: var(--text-tertiary);">Соревнуйтесь с другими дата-инженерами и достигайте вершин!</p>
+        </div>
+        
+        <div class="leaderboard-container" style="max-width: 800px; margin: 0 auto;">
+           ${leaderboard.length > 0 ? leaderboardHtml : '<div style="text-align:center; color:gray;">Пока никого нет... Станьте первым!</div>'}
+        </div>
       </div>
     `;
     this.render(html);
