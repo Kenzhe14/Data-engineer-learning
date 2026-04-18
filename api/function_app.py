@@ -3,6 +3,7 @@ import logging
 import json
 import os
 import uuid
+import hashlib
 from azure.data.tables import TableClient
 from azure.core.exceptions import ResourceExistsError, HttpResponseError
 
@@ -40,8 +41,8 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
             if e.status_code != 404:
                 raise
 
-        # Hash password simply (In real life use bcrypt)
-        hashed_pw = str(hash(password)) # Simplified
+        # Hash password securely
+        hashed_pw = hashlib.sha256(password.encode('utf-8')).hexdigest()
 
         user_entity = {
             "PartitionKey": "users",
@@ -71,7 +72,7 @@ def login(req: func.HttpRequest) -> func.HttpResponse:
         
         try:
             user = users_table.get_entity(partition_key="users", row_key=username)
-            hashed_pw = str(hash(password)) # Simplified match
+            hashed_pw = hashlib.sha256(password.encode('utf-8')).hexdigest()
             if user.get("passwordHash") != hashed_pw:
                 return func.HttpResponse(json.dumps({"ok": False, "error": "Invalid password"}), status_code=400, mimetype="application/json")
             
