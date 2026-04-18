@@ -815,7 +815,7 @@ const App = {
         <div class="achievements-grid">${achievementsHtml}</div>
 
         <!-- Leaderboard -->
-        ${leaderboard.length > 1 ? `
+        ${leaderboard.length > 0 ? `
           <div class="progress-section-title">🏅 Таблица лидеров</div>
           <div class="leaderboard-list">${leaderboardHtml}</div>
         ` : ''}
