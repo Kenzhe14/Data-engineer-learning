@@ -94,7 +94,9 @@ const Playground = {
     this.pyodideLoading = true;
     try {
       if (progressCallback) progressCallback('Загрузка Python окружения...');
-      this.pyodide = await loadPyodide();
+      this.pyodide = await loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/"
+      });
       this.pyodideReady = true;
       if (progressCallback) progressCallback('Python готов!');
       return this.pyodide;
