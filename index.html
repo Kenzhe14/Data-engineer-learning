@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Engineering Learning Platform — От Junior до Senior</title>
+  <meta name="description" content="Интерактивная платформа для обучения Data Engineering: лекции, Code Playground с SQL и Python, 200+ вопросов для собеседования.">
+  <meta name="theme-color" content="#0a0a1a">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- sql.js -->
+  <script src="https://sql.js.org/dist/sql-wasm.js"></script>
+
+  <!-- Pyodide (lazy load) -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js" defer></script>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-content">
+      <div class="loading-logo">
+        <span class="loading-icon">⚡</span>
+        <span class="loading-title">DE Platform</span>
+      </div>
+      <div class="loading-bar">
+        <div class="loading-bar-fill"></div>
+      </div>
+      <p class="loading-text">Загрузка платформы...</p>
+    </div>
+  </div>
+
+  <!-- App Shell -->
+  <div id="app" class="app-container" style="opacity:0;">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">⚡</span>
+          <span class="logo-text">DE Platform</span>
+        </div>
+      </div>
+      
+      <div class="sidebar-nav">
+        <a class="nav-link active" data-page="dashboard" href="#dashboard" onclick="App.navigate('dashboard')">
+          <span class="nav-icon">🏠</span>
+          <span>Главная</span>
+        </a>
+        
+        <div class="nav-section-title">Обучение</div>
+        
+        <a class="nav-link" data-page="module" href="#module/1" onclick="App.navigate('module', 1)">
+          <span class="nav-icon">🗃️</span>
+          <span>SQL</span>
+          <span class="nav-badge junior">1</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/2" onclick="App.navigate('module', 2)">
+          <span class="nav-icon">🐍</span>
+          <span>Python</span>
+          <span class="nav-badge junior">2</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/3" onclick="App.navigate('module', 3)">
+          <span class="nav-icon">🏗️</span>
+          <span>Data Modeling</span>
+          <span class="nav-badge junior">3</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/4" onclick="App.navigate('module', 4)">
+          <span class="nav-icon">💻</span>
+          <span>Linux & Git</span>
+          <span class="nav-badge junior">4</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/5" onclick="App.navigate('module', 5)">
+          <span class="nav-icon">🐳</span>
+          <span>Docker</span>
+          <span class="nav-badge middle">5</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/6" onclick="App.navigate('module', 6)">
+          <span class="nav-icon">🌊</span>
+          <span>Airflow</span>
+          <span class="nav-badge middle">6</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/7" onclick="App.navigate('module', 7)">
+          <span class="nav-icon">⚡</span>
+          <span>Spark</span>
+          <span class="nav-badge middle">7</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/8" onclick="App.navigate('module', 8)">
+          <span class="nav-icon">🔧</span>
+          <span>dbt</span>
+          <span class="nav-badge middle">8</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/9" onclick="App.navigate('module', 9)">
+          <span class="nav-icon">📡</span>
+          <span>Kafka</span>
+          <span class="nav-badge senior">9</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/10" onclick="App.navigate('module', 10)">
+          <span class="nav-icon">☁️</span>
+          <span>Cloud & IaC</span>
+          <span class="nav-badge senior">10</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/11" onclick="App.navigate('module', 11)">
+          <span class="nav-icon">🛡️</span>
+          <span>Data Quality</span>
+          <span class="nav-badge senior">11</span>
+        </a>
+        <a class="nav-link" data-page="module" href="#module/12" onclick="App.navigate('module', 12)">
+          <span class="nav-icon">🏛️</span>
+          <span>System Design</span>
+          <span class="nav-badge senior">12</span>
+        </a>
+
+        <div class="nav-section-title" style="margin-top:16px;">Практика</div>
+        
+        <a class="nav-link" data-page="practice" href="#practice/1" onclick="App.navigate('practice', 1)">
+          <span class="nav-icon">💻</span>
+          <span>Code Playground</span>
+        </a>
+        <a class="nav-link" data-page="interview" href="#interview" onclick="App.navigate('interview')">
+          <span class="nav-icon">🎯</span>
+          <span>Вопросы</span>
+        </a>
+        <a class="nav-link" data-page="progress" href="#progress" onclick="App.navigate('progress')">
+          <span class="nav-icon">📊</span>
+          <span>Прогресс</span>
+        </a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-collapse" id="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('collapsed');document.getElementById('app').classList.toggle('sidebar-collapsed');">
+          <span>◀</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+      <!-- Content will be rendered here by App.js -->
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <!-- Scripts (order matters) -->
+  <script src="js/auth.js?v=2"></script>
+  <script src="js/progress.js?v=2"></script>
+  <script src="js/questions.js?v=2"></script>
+  <script src="js/tasks.js?v=2"></script>
+  <script src="js/modules.js?v=2"></script>
+  <script src="js/components.js?v=2"></script>
+  <script src="js/playground.js?v=2"></script>
+
+  <!-- Monaco Editor Loader -->
+  <script>
+    var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }};
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+
+  <script src="js/app.js?v=2"></script>
+
+  <!-- Hide loading screen once ready -->
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const loading = document.getElementById('loading-screen');
+        const app = document.getElementById('app');
+        loading.style.opacity = '0';
+        loading.style.pointerEvents = 'none';
+        app.style.opacity = '1';
+        setTimeout(() => loading.remove(), 500);
+      }, 600);
+    });
+  </script>
+</body>
+</html>
